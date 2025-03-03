@@ -1,0 +1,21 @@
+# Python cache files and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment (do not commit local environments)
+env/
+
+# Data files (scraped HTML files and generated CSVs)
+data/
+
+# Airflow runtime logs and sensitive files
+airflow/logs/
+airflow/.env
+
+# System-specific files
+.DS_Store
+Thumbs.db
+
+# Optional: ignore SQLite databases or other generated files
+*.sqlite3
