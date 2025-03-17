@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
+
 
 # Basic Airflow cluster configuration for CeleryExecutor with Redis and PostgreSQL.
 #
@@ -54,6 +54,7 @@ x-airflow-common:
     context: .
     dockerfile: Dockerfile
   image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.4}
+  shm_size: '2gb'
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
@@ -71,7 +72,7 @@ x-airflow-common:
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     # WARNING: Use _PIP_ADDITIONAL_REQUIREMENTS option ONLY for a quick checks
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-apache-airflow-providers-apache-kafka}
     # The following line can be used to set a custom config file, stored in the local config folder
     # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
@@ -87,6 +88,10 @@ x-airflow-common:
     redis:
       condition: service_healthy
     postgres:
+      condition: service_healthy
+    kafka:
+      condition: service_healthy
+    zookeeper:
       condition: service_healthy
 
 services:
@@ -287,6 +292,48 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+  zookeeper:
+    image: bitnami/zookeeper:3.8
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOO_PORT_NUMBER: 2181
+      ZOO_SERVER_ID: 1
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]  # Just check port
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: always
+    volumes:
+      - zookeeper-data:/bitnami/zookeeper
+  
+  kafka:
+    image: bitnami/kafka:3.5
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--list", "--bootstrap-server", "localhost:9092"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: always
+    volumes:
+      - kafka-data:/bitnami/kafka
 
 volumes:
   postgres-db-volume:
+  zookeeper-data:
+  kafka-data:

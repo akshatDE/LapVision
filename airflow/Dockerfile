@@ -1,42 +1,32 @@
-# Use an ARM-compatible base image
-FROM arm64v8/ubuntu:20.04
+FROM apache/airflow:2.10.4-python3.9
 
-# Install required packages for Chromium and Selenium
+USER root
+
+# Install Chromium and dependencies
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
         wget \
         unzip \
-        python3 \
-        python3-pip \
-        chromium-browser && \
-    apt-get clean
+        chromium \
+        chromium-driver \
+        libglib2.0-0 \
+        libnss3 \
+        libx11-xcb1 \
+        libxcb-dri3-0 \
+        libxtst6 \
+        libgbm1 \
+        libasound2 \
+        xvfb \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Set Chrome options
-ENV CHROME_BIN=/usr/bin/chromium-browser
-ENV CHROME_DRIVER=/usr/local/bin/chromedriver
+# Set Chromium binary location
+ENV CHROME_BIN=/usr/bin/chromium
 
-# Download ChromeDriver
-# Ensure the version matches the installed Chromium version
-RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/116.0.5845.96/chromedriver_linux64.zip && \
-    unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
-    chmod +x /usr/local/bin/chromedriver && \
-    rm /tmp/chromedriver.zip
-
-# Install Python libraries
-RUN pip3 install \
-        selenium \
-        pandas \
-        beautifulsoup4
-
-# Use a non-root user (optional, for security)
-RUN useradd -ms /bin/bash airflow
 USER airflow
 
-# Working directory
-WORKDIR /home/airflow
+# Copy and install Python requirements
+COPY requirements.txt /opt/airflow/requirements.txt
+RUN pip install --no-cache-dir -r /opt/airflow/requirements.txt
 
-# Copy your Airflow DAGs or Python files if needed
-# COPY your_script.py /home/airflow/your_script.py
-
-# Set entrypoint (optional, adapt as needed)
-# ENTRYPOINT ["python3", "/home/airflow/your_script.py"]
+WORKDIR /opt/airflow

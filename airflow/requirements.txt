@@ -1,0 +1,5 @@
+selenium==4.10.0
+pandas==1.5.3
+beautifulsoup4==4.11.2
+kafka-python==2.0.2
+apache-airflow-providers-apache-kafka==1.7.0
