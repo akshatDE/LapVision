@@ -19,3 +19,7 @@ Thumbs.db
 
 # Optional: ignore SQLite databases or other generated files
 *.sqlite3
+
+
+# ignore jupyter notebook files
+*.ipynb
