@@ -24,7 +24,9 @@ Thumbs.db
 # ignore jupyter notebook files
 *.ipynb
 
-# ignore test files
-test_*
+# ignore testing files
+testing/
+
+
 
 
